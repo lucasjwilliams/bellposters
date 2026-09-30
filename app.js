@@ -1,7 +1,7 @@
 'use strict';
 
 // Shown in the footer; bump it with each release to check a device has the latest
-const VERSION = '0.2';
+const VERSION = '0.3';
 
 const LB_TO_KG = 0.45359237;
 const IN_TO_CM = 2.54;
