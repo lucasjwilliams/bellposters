@@ -39,7 +39,7 @@ const DEFAULT_COLS = '0101'; // weight and item on; note and diameter off
 // Items people add themselves are kept in their browser (and travel in share links)
 const CUSTOM_KEY = 'bellposters.customItems';
 const CUSTOM_IMG_SIZE = 240;
-const SUBMIT_EMAIL = 'dander_fabric926@simplelogin.com';
+const SUBMIT_EMAIL = 'contact@lucasw.uk';
 
 const state = {
   rings: [],
