@@ -1,7 +1,7 @@
 'use strict';
 
 // Shown in the footer; bump it with each release to check a device has the latest
-const VERSION = '1.1';
+const VERSION = '0.1';
 
 const LB_TO_KG = 0.45359237;
 const IN_TO_CM = 2.54;
@@ -977,8 +977,7 @@ function initControls() {
 
 async function init() {
   // document.lastModified is when the page was last deployed
-  const updated = new Date(document.lastModified);
-  $('version').textContent = `v${VERSION} · ${updated.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })} ${updated.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+  $('version').textContent = `v${VERSION} · ${new Date(document.lastModified).getFullYear()}`;
   initControls();
   fitPreview();
   if (!window.RINGS || !window.ITEMS) {
