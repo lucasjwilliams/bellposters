@@ -1,7 +1,7 @@
 'use strict';
 
 // Shown in the footer; bump it with each release to check a device has the latest
-const VERSION = '0.6';
+const VERSION = '0.7';
 
 const LB_TO_KG = 0.45359237;
 const IN_TO_CM = 2.54;
@@ -40,6 +40,15 @@ const DEFAULT_COLS = '0101'; // weight and item on; note and diameter off
 const CUSTOM_KEY = 'bellposters.customItems';
 const CUSTOM_IMG_SIZE = 240;
 const SUBMIT_EMAIL = 'contact@lucasw.uk';
+
+// Anonymous usage counts (towers picked, exports) go to GoatCounter, which uses
+// no cookies. Its script loads async, so an event sent before then waits for it.
+// It ignores localhost, so testing doesn't count.
+function track(path, title = '') {
+  const send = () => window.goatcounter.count({ path, title, event: true });
+  if (window.goatcounter?.count) send();
+  else document.querySelector('script[data-goatcounter]')?.addEventListener('load', send, { once: true });
+}
 
 const state = {
   rings: [],
@@ -246,8 +255,9 @@ function defaultTitle(r) {
   return r === CUSTOM_RING ? 'The Bells of Our Tower' : `The ${r[5]} Bells of ${r[1]}`;
 }
 
-function selectRing(r) {
+function selectRing(r, fromShare = false) {
   state.ring = r;
+  if (!fromShare) track(r === CUSTOM_RING ? 'tower: custom' : `tower: ${towerLabel(r)} · ${r[3]}`, `Dove ${r[0]}`);
   history.replaceState(null, '', `?ring=${r === CUSTOM_RING ? 'custom' : r[0]}`);
   $('tower-results').hidden = true;
   $('tower-search').value = r === CUSTOM_RING ? '' : towerLabel(r);
@@ -721,7 +731,7 @@ function applyState(data) {
   for (const item of data.x) {
     if (!itemById(item.id)) state.customItems.push({ ...item, custom: true, fromLink: true });
   }
-  selectRing(ring);
+  selectRing(ring, true);
   Object.entries(data.b || {}).forEach(([i, [included, name, kg, note]]) => {
     if (state.bells[i]) Object.assign(state.bells[i], { included: !!included, name, kg, ...(note !== undefined && { note }) });
   });
@@ -765,6 +775,7 @@ function applyState(data) {
 }
 
 async function share() {
+  track('share link made');
   const btn = $('share');
   try {
     const url = `${location.href.split(/[?#]/)[0]}?ring=${state.ring === CUSTOM_RING ? 'custom' : state.ring[0]}#p=${await encodeState()}`;
@@ -1013,8 +1024,8 @@ function initControls() {
   $('custom-email').textContent = SUBMIT_EMAIL;
   $('custom-email').href = `mailto:${SUBMIT_EMAIL}?subject=${encodeURIComponent('Bell Weight Posters image')}`;
   $('share').addEventListener('click', share);
-  $('print').addEventListener('click', () => window.print());
-  $('download').addEventListener('click', downloadImage);
+  $('print').addEventListener('click', () => { track('export: print'); window.print(); });
+  $('download').addEventListener('click', () => { track('export: image'); downloadImage(); });
   window.addEventListener('resize', fitPreview);
   const setFull = (on) => {
     $('preview').classList.toggle('full', on);
@@ -1054,6 +1065,7 @@ async function init() {
   // A share link (#p=...) restores the whole poster; ?ring=... just picks the tower
   const shared = location.hash.match(/^#p=([\w-]+)/);
   if (shared) {
+    track('share link opened');
     const href = location.href;
     try {
       if (applyState(await decodeState(shared[1]))) {
