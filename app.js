@@ -859,90 +859,52 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-function fileBase() {
-  return state.title.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'bell-poster';
-}
-
-// Draw each poster page to a canvas
-async function renderPages() {
-  const canvases = [];
-  for (const page of $('posters').querySelectorAll('.poster')) {
-    // iOS Safari runs out of canvas memory on big images, so phones get ~4 MP
-    const maxPixels = IS_TOUCH ? 4e6 : 12e6;
-    const scale = Math.min(3, Math.sqrt(maxPixels / (page.offsetWidth * page.offsetHeight)));
-    canvases.push(await withTimeout(html2canvas(page, {
-      scale,
-      backgroundColor: '#ffffff',
-      // Only clone this page; otherwise html2canvas waits on every lazy picker thumbnail
-      ignoreElements: (el) => !el.closest('head') && !(el.contains(page) || page.contains(el)),
-      imageTimeout: 8000,
-      onclone: (doc) => { doc.getElementById('posters').style.transform = 'none'; },
-    }), 30000));
-  }
-  return canvases;
-}
-
-// iOS ignores download links, so hand files to the share sheet there
-// (which also offers Print and Save to Files)
-async function saveFiles(files) {
-  if (IS_TOUCH && navigator.canShare?.({ files })) {
-    await navigator.share({ files }).catch((e) => { if (e.name !== 'AbortError') throw e; });
-    return;
-  }
-  for (const file of files) {
-    const a = document.createElement('a');
-    a.download = file.name;
-    a.href = URL.createObjectURL(file);
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-  }
-}
-
-// Run an export with the button showing progress, and explain any failure
-async function exportWith(btn, label, fn) {
+async function downloadImage() {
+  const btn = $('download');
   btn.disabled = true;
   btn.textContent = 'Rendering…';
   try {
-    await fn();
+    const pages = [...$('posters').querySelectorAll('.poster')];
+    const base = state.title.replace(/[^\w]+/g, '-').replace(/^-|-$/g, '').toLowerCase() || 'bell-poster';
+    const files = [];
+    for (const [i, page] of pages.entries()) {
+      // iOS Safari runs out of canvas memory on big images, so phones get ~4 MP
+      const maxPixels = IS_TOUCH ? 4e6 : 12e6;
+      const scale = Math.min(3, Math.sqrt(maxPixels / (page.offsetWidth * page.offsetHeight)));
+      const canvas = await withTimeout(html2canvas(page, {
+        scale,
+        backgroundColor: '#ffffff',
+        // Only clone this page; otherwise html2canvas waits on every lazy picker thumbnail
+        ignoreElements: (el) => !el.closest('head') && !(el.contains(page) || page.contains(el)),
+        imageTimeout: 8000,
+        onclone: (doc) => { doc.getElementById('posters').style.transform = 'none'; },
+      }), 30000);
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      if (!blob) throw new Error('the image was too big for this browser');
+      const name = pages.length > 1 ? `${base}-${i + 1}-of-${pages.length}.png` : `${base}.png`;
+      files.push(new File([blob], name, { type: 'image/png' }));
+    }
+    // iOS ignores download links, so use the share sheet ("Save Image") there
+    if (IS_TOUCH && navigator.canShare?.({ files })) {
+      await navigator.share({ files }).catch((e) => { if (e.name !== 'AbortError') throw e; });
+    } else {
+      for (const file of files) {
+        const a = document.createElement('a');
+        a.download = file.name;
+        a.href = URL.createObjectURL(file);
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      }
+    }
   } catch (err) {
     // Browsers won't export a canvas containing local files when the page is opened from disk
     alert(location.protocol === 'file:'
-      ? 'Exporting only works once the site is online (e.g. on GitHub Pages).'
-      : `Sorry, the export didn't work (${err.message}).`);
+      ? 'Downloading an image only works once the site is online (e.g. on GitHub Pages). For now, use "Print / Save as PDF".'
+      : `Sorry, the image couldn't be made (${err.message}). "Print / Save as PDF" should still work.`);
   } finally {
     btn.disabled = false;
-    btn.textContent = label;
+    btn.textContent = 'Download as image';
   }
-}
-
-function downloadImage() {
-  return exportWith($('download'), 'Download as image', async () => {
-    const canvases = await renderPages();
-    const files = [];
-    for (const [i, canvas] of canvases.entries()) {
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
-      if (!blob) throw new Error('the image was too big for this browser');
-      const name = canvases.length > 1 ? `${fileBase()}-${i + 1}-of-${canvases.length}.png` : `${fileBase()}.png`;
-      files.push(new File([blob], name, { type: 'image/png' }));
-    }
-    await saveFiles(files);
-  });
-}
-
-// Safari and every iPhone/iPad browser print with their own margins and shrink
-// the page, so there the PDF is built directly: one full A4 page per poster page
-function savePdf() {
-  return exportWith($('print'), 'Print / Save as PDF', async () => {
-    const canvases = await renderPages();
-    const landscape = state.orientation === 'landscape';
-    const [w, h] = landscape ? [297, 210] : [210, 297];
-    const pdf = new window.jspdf.jsPDF({ orientation: state.orientation, unit: 'mm', format: 'a4' });
-    canvases.forEach((canvas, i) => {
-      if (i) pdf.addPage('a4', state.orientation);
-      pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
-    });
-    await saveFiles([new File([pdf.output('blob')], `${fileBase()}.pdf`, { type: 'application/pdf' })]);
-  });
 }
 
 // ---------- Wiring ----------
@@ -990,7 +952,7 @@ function initControls() {
   $('custom-email').textContent = SUBMIT_EMAIL;
   $('custom-email').href = `mailto:${SUBMIT_EMAIL}?subject=${encodeURIComponent('Bell Weight Posters image')}`;
   $('share').addEventListener('click', share);
-  $('print').addEventListener('click', () => (IS_WEBKIT_PRINT ? savePdf() : window.print()));
+  $('print').addEventListener('click', () => window.print());
   $('download').addEventListener('click', downloadImage);
   window.addEventListener('resize', fitPreview);
   const setFull = (on) => {

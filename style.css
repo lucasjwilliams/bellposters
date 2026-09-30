@@ -471,8 +471,10 @@ button.link.inline { padding: 0; text-decoration: underline; }
 
   /* Safari and all iPhone/iPad browsers ignore "@page { margin: 0 }" and add
      their own margins and header, so the poster has to be shorter there */
-  html.safari-print .poster { width: 100%; height: 225mm; }
-  html.safari-print .poster.landscape { height: 140mm; }
+  /* Measured from iPad print previews: about 181 x 246 mm is usable on A4 (the
+     footer sits below that). These leave ~8 mm spare so it stays on one sheet. */
+  html.safari-print .poster { width: 100%; height: 238mm; }
+  html.safari-print .poster.landscape { height: 150mm; }
 }
 
 .version { margin-left: 8px; opacity: 0.7; white-space: nowrap; }
