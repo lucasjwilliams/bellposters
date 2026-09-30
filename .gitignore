@@ -1,0 +1,9 @@
+# Raw Dove downloads (tools/build_data.py turns these into data/rings.js)
+*.csv
+
+__pycache__/
+*.pyc
+
+.DS_Store
+Thumbs.db
+*:Zone.Identifier

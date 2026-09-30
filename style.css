@@ -1,0 +1,476 @@
+:root {
+  --bg: #f4f2ee;
+  --panel: #fff;
+  --text: #222;
+  --muted: #6b6b6b;
+  --border: #ddd8cf;
+  --field-border: #d3cfc6;
+  --accent: #4a7a35;
+  --band: #f1f4ee;
+  --good: #3f8f2f;
+  --bad: #c0392b;
+  --font: "Segoe UI", Calibri, "Helvetica Neue", Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  line-height: 1.4;
+}
+body.no-scroll { overflow: hidden; }
+
+button, input, select { font: inherit; }
+
+input[type=text], input[type=search], input[type=number], select {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+}
+
+button {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text); /* iOS makes button text blue otherwise */
+  cursor: pointer;
+}
+button:hover:not(:disabled) { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.link { border: none; background: none; color: var(--accent); padding: 8px 0 0; }
+button.link.inline { padding: 0; text-decoration: underline; }
+
+.muted { color: var(--muted); }
+.small { font-size: 0.85rem; }
+
+/* ---------- Page layout ---------- */
+
+.site-header { padding: 20px 24px 8px; }
+.site-header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+.site-header p { margin: 0; color: var(--muted); }
+.site-footer { padding: 16px 24px 32px; font-size: 0.85rem; color: var(--muted); }
+.site-footer a { color: inherit; }
+
+.layout {
+  display: grid;
+  /* minmax(0, …) stops the full-size poster from stretching the preview column */
+  grid-template-columns: clamp(340px, 40vw, 640px) minmax(0, 1fr);
+  gap: 24px;
+  padding: 16px 24px;
+  align-items: start;
+}
+
+.controls { display: flex; flex-direction: column; gap: 16px; }
+
+.step {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px;
+}
+.step h2 { margin: 0 0 10px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+.step p { margin: 8px 0 0; }
+.num {
+  display: inline-grid; place-items: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 0.85rem;
+}
+
+.field { display: block; margin-bottom: 10px; font-size: 0.9rem; color: var(--muted); }
+.field input, .field select { margin-top: 3px; color: var(--text); }
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+.row .field { flex: 1; min-width: 120px; }
+
+/* ---------- Step 1: tower search ---------- */
+
+.search { position: relative; }
+.results {
+  position: absolute; z-index: 10; left: 0; right: 0; top: 100%;
+  margin: 4px 0 0; padding: 4px 0; list-style: none;
+  background: #fff; border: 1px solid var(--border); border-radius: 6px;
+  max-height: 320px; overflow-y: auto;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.results li { padding: 7px 10px; cursor: pointer; }
+.results li:hover { background: var(--bg); }
+.results li .muted { display: block; font-size: 0.8rem; }
+.results li.none { cursor: default; }
+
+/* ---------- Step 2: bell table ---------- */
+/* One banded row per bell. The layout follows the width of the panel (a
+   container query), not the screen; narrow panels switch to cards below. */
+
+.bells { container-type: inline-size; }
+.bell-list { display: flex; flex-direction: column; }
+
+.bell-row {
+  display: grid;
+  grid-template-columns: 20px minmax(104px, 0.55fr) 34px 54px 50px minmax(0, 1.6fr) auto;
+  grid-template-areas: "inc name note kg diam item end";
+  gap: 6px;
+  align-items: center;
+  min-height: 42px;
+  padding: 3px 4px 3px 8px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+}
+.bell-row:nth-child(even) { background: var(--band); }
+.bell-row:hover { background: #e9eee4; }
+.bell-row.off > :not(.inc):not(.row-end) { opacity: 0.45; }
+
+.bell-row .inc { grid-area: inc; width: 18px; height: 18px; margin: 0; accent-color: var(--accent); }
+.bell-row .name { grid-area: name; font-weight: 600; }
+.bell-row .note-cell { grid-area: note; display: block; }
+.bell-row .kg { grid-area: kg; }
+.bell-row .diam { grid-area: diam; }
+.bell-row .item-btn { grid-area: item; }
+.bell-row .row-end { grid-area: end; display: flex; align-items: center; justify-content: flex-end; width: 34px; }
+.bell-row .kg, .bell-row .diam { display: block; font-size: 0.75rem; color: var(--muted); }
+.bell-row .mini { display: none; } /* per-box labels, shown on cards */
+
+/* Editable cells */
+.bell-row input[type=text], .bell-row input[type=number], .bell-row .item-btn {
+  min-height: 32px;
+  padding-block: 5px;
+  background: #fff;
+  border: 1px solid var(--field-border);
+  border-radius: 5px;
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.04);
+}
+.bell-row input[type=text]:hover, .bell-row input[type=number]:hover, .bell-row .item-btn:hover:not(:disabled) {
+  border-color: #a9a498;
+}
+.bell-row input:focus, .bell-row .item-btn:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(74, 122, 53, 0.18);
+}
+.bell-row input::placeholder { color: #b3ada2; }
+.bell-row .note-in { width: 100%; padding-inline: 2px; text-align: center; }
+.bell-row .note-in::placeholder { font-size: 0.8rem; }
+.bell-row input[type=number] {
+  width: 100%; min-width: 0;
+  padding-inline: 5px;
+  text-align: right;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  appearance: textfield; -moz-appearance: textfield; /* no spinner arrows */
+}
+.bell-row input[type=number]::-webkit-inner-spin-button,
+.bell-row input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* The item cell is a button styled as a dropdown */
+.item-btn {
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  padding: 5px 20px 5px 6px;
+  overflow: hidden;
+  text-align: left; font-size: 0.85rem;
+}
+.item-btn span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-btn::after {
+  content: "▾";
+  position: absolute; right: 7px; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 0.8rem; pointer-events: none;
+}
+.item-btn:disabled { opacity: 0.4; cursor: default; }
+.item-btn:disabled::after { content: none; }
+.thumb { width: 28px; height: 28px; object-fit: contain; flex: none; }
+
+.bell-row .remove {
+  width: 16px; height: 24px; padding: 0;
+  border: none; background: none;
+  color: var(--muted); font-size: 0.95rem;
+}
+.bell-row .remove:hover { color: var(--bad); }
+.bell-row .drag {
+  width: 18px; height: 36px; padding: 0;
+  border: none; background: none;
+  color: var(--muted); font-size: 1.1rem; line-height: 1;
+  opacity: 0.55;
+  cursor: grab; touch-action: none;
+}
+.bell-row:hover .drag { opacity: 1; }
+.bell-row .drag:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
+
+/* While dragging, the row lifts off the table and the others fade back */
+.bell-list.is-dragging .bell-row:not(.dragging) { opacity: 0.6; }
+.bell-list .bell-row.dragging {
+  position: relative; z-index: 5;
+  background: #fff;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22), 0 0 0 4px rgba(74, 122, 53, 0.18);
+  transform: scale(1.02);
+  opacity: 1;
+  cursor: grabbing;
+}
+.bell-list .bell-row.dragging .drag { opacity: 1; color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) {
+  .bell-row { transition: opacity 0.15s; }
+}
+
+/* Column headings share the rows' grid */
+.bell-row.bell-head {
+  min-height: 0;
+  padding-top: 0; padding-bottom: 6px;
+  border-bottom: 2px solid var(--text);
+  background: none;
+  color: var(--muted);
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.bell-head .h-name { grid-area: name; padding-left: 7px; }
+.bell-head .h-note { grid-area: note; text-align: center; }
+.bell-head .h-kg { grid-area: kg; text-align: right; padding-right: 5px; }
+.bell-head .h-diam { grid-area: diam; text-align: right; padding-right: 5px; }
+.bell-head .h-item { grid-area: item; padding-left: 7px; }
+.bell-head::after { content: ""; grid-area: end; width: 34px; }
+
+.list-actions { display: flex; flex-wrap: wrap; gap: 4px 20px; }
+
+/* Narrow panels: one card per bell. Name on top, then labelled note / kg / cm,
+   then the item across the width. */
+@container (max-width: 469px) {
+  .bell-head { display: none; }
+  .bell-list { gap: 8px; }
+  .bell-row {
+    grid-template-columns: 22px repeat(3, minmax(0, 1fr)) auto;
+    grid-template-areas:
+      "inc name name name end"
+      ".   note kg   diam ."
+      ".   item item item .";
+    gap: 6px 8px;
+    padding: 10px 8px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  .bell-row:nth-child(even), .bell-row:hover { background: var(--panel); }
+  .bell-row .mini {
+    display: block; margin-bottom: 2px;
+    color: var(--muted); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  }
+  .bell-row .name { font-size: 1.05rem; }
+  .bell-row input[type=number] { text-align: left; padding-inline: 8px; }
+  .bell-row .item-btn { min-height: 44px; }
+  .bell-row .row-end { width: auto; gap: 6px; }
+  .bell-row .drag { opacity: 0.8; }
+}
+
+/* ---------- Step 3: style ---------- */
+
+#step-style .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+#step-style .row.titles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+#step-style .row .field { min-width: 0; }
+#step-style .field select, #step-style .field input:not([type=checkbox]) { width: 100%; }
+
+.show-cols { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0 0 10px; padding: 0; border: none; }
+.show-cols legend { width: 100%; margin-bottom: 4px; padding: 0; }
+.show-cols label { display: flex; align-items: center; gap: 5px; color: var(--text); white-space: nowrap; cursor: pointer; }
+.show-cols input { margin: 0; accent-color: var(--accent); }
+
+.checks { display: flex; flex-direction: column; gap: 4px; margin: -2px 0 10px; font-size: 0.9rem; }
+.checks input { margin-right: 4px; accent-color: var(--accent); }
+
+.swatches { display: flex; gap: 8px; margin-top: 4px; }
+.swatch { width: 30px; height: 30px; padding: 0; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px var(--border); }
+.swatch.on { box-shadow: 0 0 0 2px var(--text); }
+
+/* ---------- Step 4: export ---------- */
+
+#share-box { margin-top: 10px; }
+#share-box input { font-size: 0.8rem; }
+
+/* ---------- Item picker ---------- */
+
+.picker {
+  width: min(720px, calc(100vw - 32px));
+  padding: 16px;
+  border: none; border-radius: 12px;
+}
+.picker::backdrop { background: rgba(0, 0, 0, 0.4); }
+/* Only the grid scrolls, so the title, filter and form stay in view */
+.picker[open] { display: flex; flex-direction: column; max-height: calc(100dvh - 32px); overflow: hidden; }
+.picker-head { display: flex; justify-content: space-between; align-items: center; }
+.picker-head h2 { margin: 0; font-size: 1.1rem; }
+.close { border: none; font-size: 1.1rem; }
+#picker-filter { margin: 10px 0; }
+
+.picker-grid {
+  /* flex-basis auto, not 0: iOS Safari collapses a 0-basis item to nothing */
+  flex: 1 1 auto;
+  min-height: 120px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-auto-rows: max-content;
+  align-content: start;
+  gap: 8px;
+  padding: 2px;
+  overflow-y: auto;
+}
+.pick {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px;
+  text-align: center;
+}
+.pick.current { border: 2px solid var(--good); background: #e4f3dc; }
+.pick.used { border: 2px solid var(--bad); background: #fbe3e0; }
+.pick .tag { padding: 1px 6px; border-radius: 4px; color: #fff; font-size: 0.72rem; font-weight: 700; }
+.pick.current .tag { background: var(--good); }
+.pick.used .tag { background: var(--bad); }
+.pick-img { width: 72px; height: 56px; object-fit: contain; }
+.pick-img.plus { display: grid; place-items: center; color: var(--accent); font-size: 40px; }
+.pick-name { font-size: 0.9rem; font-weight: 600; }
+.pick-meta { font-size: 0.78rem; color: var(--muted); }
+.diff { margin-left: 4px; }
+.diff.close { color: var(--accent); font-weight: 600; }
+.add-own { justify-content: center; border-style: dashed; }
+
+.custom-form { margin: 10px 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.custom-form h3 { margin: 0 0 8px; font-size: 1rem; }
+.custom-form input[type=file] { margin-top: 3px; font-size: 0.85rem; }
+.custom-form a { color: var(--accent); }
+
+/* ---------- Preview ---------- */
+
+.preview { position: sticky; top: 16px; }
+.preview-head { display: none; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.preview-head h2 { margin: 0; font-size: 1.05rem; }
+.preview-close { display: none; padding: 4px 8px; border: none; background: none; font-size: 1.2rem; }
+.preview-full {
+  position: absolute; right: 8px; bottom: 8px; z-index: 2;
+  display: none; place-items: center;
+  width: 36px; height: 36px; padding: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+.preview.full {
+  position: fixed; inset: 0; z-index: 50;
+  margin: 0; padding: 12px 16px 24px;
+  background: var(--bg);
+  overflow: auto;
+}
+.preview.full .preview-head { display: flex; }
+.preview.full .preview-close { display: block; }
+.preview.full .preview-full { display: none; }
+
+.poster-frame { width: 100%; margin: 0 auto; }
+.posters { display: flex; flex-direction: column; gap: 32px; width: max-content; transform-origin: top left; }
+
+/* ---------- Poster (A4 at 96 dpi) ---------- */
+
+.poster {
+  --main: #4a7a35;
+  --light: #e3efd9;
+  display: flex; flex-direction: column;
+  width: 794px; height: 1123px;
+  padding: 48px 56px 28px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  color: #222;
+  font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+}
+.poster.landscape { width: 1123px; height: 794px; padding: 32px 56px 20px; }
+.poster-empty { margin: auto; color: var(--muted); font-size: 1.3rem; }
+
+.p-title { margin: 0; text-align: center; color: var(--main); font-size: 44px; line-height: 1.15; }
+.poster.landscape .p-title { font-size: 38px; }
+.p-subtitle { margin: 6px 0 0; text-align: center; color: #555; font-size: 20px; }
+
+.p-table {
+  flex: 1; min-height: 0;
+  display: grid;
+  grid-template-rows: 64px repeat(var(--rows), minmax(0, 1fr));
+  margin-top: 28px;
+  border: 1px solid var(--main);
+}
+.poster.landscape .p-table { margin-top: 20px; grid-template-rows: 54px repeat(var(--rows), minmax(0, 1fr)); }
+.poster.no-head .p-table { grid-template-rows: repeat(var(--rows), minmax(0, 1fr)); }
+.poster.no-title .p-table { margin-top: 0; }
+
+.p-row {
+  display: grid;
+  grid-template-columns: var(--cols, 17% 21% 19% 1fr);
+  align-items: center;
+  min-height: 0;
+  text-align: center;
+  font-size: clamp(14px, calc(260px / var(--rows)), 26px);
+}
+.p-row + .p-row:not(:nth-child(2)) { border-top: 1px solid var(--main); }
+.p-row.band { background: var(--light); } /* set per bell, so banding runs on across pages */
+.p-head { background: var(--main); color: #fff; font-weight: 700; font-size: 22px; }
+.p-row .sub { display: block; font-size: 0.7em; color: #666; }
+.p-what { display: flex; align-items: center; justify-content: center; gap: 10px; height: 100%; min-height: 0; padding: 4px 10px; }
+.p-caption { flex: 1; }
+.p-img { flex: none; width: 40%; height: 85%; max-height: 110px; background: center / contain no-repeat; }
+.p-credit { margin: 10px 0 0; text-align: right; color: #999; font-size: 11px; }
+
+/* ---------- Smaller screens ---------- */
+
+@media (max-width: 860px) {
+  .layout { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; }
+  .controls, .preview { min-width: 0; }
+  .site-header { padding: 16px 16px 4px; }
+  .site-footer { padding: 16px 16px 24px; }
+  .preview { position: relative; top: auto; }
+  .preview-head { display: flex; }
+  .preview-full { display: grid; }
+}
+
+@media (max-width: 520px) {
+  .site-header h1 { font-size: 1.35rem; }
+  .step { padding: 12px; }
+  .row > button { flex: 1 1 100%; }
+  .picker { width: calc(100vw - 16px); padding: 12px; }
+  .picker[open] { height: calc(100dvh - 16px); max-height: none; }
+  .picker-grid { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+  .pick { padding: 8px 4px; }
+  .pick-img { width: 60px; height: 46px; }
+  .pick-name { font-size: 0.82rem; }
+}
+
+/* Phones and tablets: iOS zooms into any field with text under 16px */
+@media (max-width: 860px), (pointer: coarse) {
+  input:not([type=checkbox]):not([type=file]), select, textarea { font-size: 16px !important; }
+}
+@media (pointer: coarse) {
+  input, select, textarea, button, label { touch-action: manipulation; }
+}
+
+/* ---------- Print: only the poster pages, one per sheet ---------- */
+/* The @page size is set from app.js (#page-size) as it follows the orientation.
+   Pages are a touch under A4 so rounding never spills onto a blank sheet. */
+
+@media print {
+  :root, html, body { margin: 0; padding: 0; height: auto; background: #fff; }
+  .site-header, .controls, .site-footer, dialog, .preview-head, .preview-full { display: none !important; }
+  .layout { display: block; padding: 0; }
+  .preview, .poster-frame, .posters { position: static; margin: 0; padding: 0; min-height: 0; }
+  /* these three carry inline sizes from the on-screen preview */
+  .poster-frame { height: auto !important; max-width: none !important; }
+  .posters { transform: none !important; width: auto; gap: 0; }
+
+  .poster {
+    width: 210mm; height: 296mm;
+    box-shadow: none;
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: page; page-break-after: always;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .poster.landscape { width: 297mm; height: 209mm; }
+  .poster:last-child { break-after: auto; page-break-after: auto; }
+
+  /* Safari and all iPhone/iPad browsers ignore "@page { margin: 0 }" and add
+     their own margins and header, so the poster has to be shorter there */
+  html.safari-print .poster { width: 100%; height: 225mm; }
+  html.safari-print .poster.landscape { height: 140mm; }
+}

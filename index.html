@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- maximum-scale=1 stops iOS Safari zooming in when a field is tapped (pinch-zoom still works) -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚖️</text></svg>">
+  <title>Bell Weight Posters</title>
+  <meta name="description" content="Make a poster comparing the weights of your tower's bells to everyday things.">
+  <link rel="stylesheet" href="style.css">
+  <style id="page-size">@page { size: A4 portrait; margin: 0; }</style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="data/rings.js" defer></script>
+  <script src="data/items.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <h1>Bell Weight Posters</h1>
+    <p>Choose the bells, and we'll find something that weighs about the same as each one.</p>
+  </header>
+
+  <main class="layout">
+    <section class="controls" aria-label="Poster settings">
+      <div class="step">
+        <h2><span class="num">1</span> Find your tower</h2>
+        <div class="search">
+          <input id="tower-search" type="search" placeholder="Place, dedication or county…" autocomplete="off" aria-label="Search towers">
+          <ul id="tower-results" class="results" role="listbox" hidden></ul>
+        </div>
+        <p id="tower-status" class="muted">Loading tower data…</p>
+      </div>
+
+      <div class="step" id="step-bells" hidden>
+        <h2><span class="num">2</span> Set up your bells &amp; items</h2>
+        <div class="bells">
+          <div class="bell-row bell-head" aria-hidden="true">
+            <span class="h-name">Bell name</span>
+            <span class="h-note">Note</span>
+            <span class="h-kg">kg</span>
+            <span class="h-diam" id="h-diam">cm</span>
+            <span class="h-item">Item</span>
+          </div>
+          <div id="bell-list" class="bell-list"></div>
+        </div>
+        <div class="list-actions">
+          <button id="add-bell" type="button" class="link">+ Add a bell</button>
+          <button id="reshuffle" type="button" class="link">↻ Re-suggest all items</button>
+        </div>
+      </div>
+
+      <div class="step" id="step-style" hidden>
+        <h2><span class="num">3</span> Style it</h2>
+        <div class="row titles">
+          <label class="field">Title
+            <input id="title" type="text">
+          </label>
+          <label class="field">Subtitle
+            <input id="subtitle" type="text" placeholder="Optional">
+          </label>
+        </div>
+        <fieldset class="field show-cols">
+          <legend>Columns on the poster</legend>
+          <label><input type="checkbox" id="col-note"> Note</label>
+          <label><input type="checkbox" id="col-weight"> Weight</label>
+          <label><input type="checkbox" id="col-diam"> Diameter</label>
+          <label><input type="checkbox" id="col-item"> What weighs that?</label>
+        </fieldset>
+        <div class="row">
+          <label class="field">Weights in
+            <select id="units">
+              <option value="kg">kg</option>
+              <option value="cwt">cwt-qr-lb</option>
+              <option value="both">both</option>
+            </select>
+          </label>
+          <label class="field">Diameter
+            <select id="diam-units">
+              <option value="cm">cm</option>
+              <option value="in">inches</option>
+            </select>
+          </label>
+        </div>
+        <div class="row">
+          <label class="field">Page
+            <select id="orientation">
+              <option value="portrait">Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </label>
+          <label class="field">Split across
+            <select id="pages">
+              <option value="1">1 page</option>
+              <option value="2">2 pages</option>
+              <option value="3">3 pages</option>
+              <option value="4">4 pages</option>
+            </select>
+          </label>
+        </div>
+        <div id="page-options" class="checks" hidden>
+          <label><input type="checkbox" id="title-all"> Show title on every page</label>
+          <label><input type="checkbox" id="head-all"> Show table headings on every page</label>
+        </div>
+        <div class="field">Colour
+          <div id="swatches" class="swatches"></div>
+        </div>
+      </div>
+
+      <div class="step" id="step-export" hidden>
+        <h2><span class="num">4</span> Export result</h2>
+        <div class="row">
+          <button id="print" type="button" class="primary">Print / Save as PDF</button>
+          <button id="download" type="button">Download as image</button>
+          <button id="share" type="button">Copy share link</button>
+        </div>
+        <div id="share-box" hidden>
+          <input id="share-url" type="text" readonly aria-label="Share link">
+          <p class="muted small">This link opens the poster exactly as it is now, including any items you've added.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="preview" id="preview" aria-label="Poster preview">
+      <div class="preview-head">
+        <h2>Preview</h2>
+        <button type="button" id="preview-close" class="preview-close" aria-label="Close full screen preview">✕</button>
+      </div>
+      <button type="button" id="preview-full" class="preview-full" aria-label="View preview full screen" title="Full screen">
+        <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+      <div id="poster-frame" class="poster-frame">
+        <div id="posters" class="posters">
+          <div class="poster"><div class="poster-empty">Select a tower to start your poster.</div></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="picker" class="picker">
+    <form method="dialog" class="picker-head">
+      <h2 id="picker-title">Choose an item</h2>
+      <button type="submit" class="close" aria-label="Close">✕</button>
+    </form>
+    <form id="custom-form" class="custom-form" hidden>
+      <h3>Add your own item</h3>
+      <div class="row">
+        <label class="field">Name
+          <input id="custom-name" type="text" required placeholder="e.g. Our tower captain">
+        </label>
+        <label class="field">Picture
+          <input id="custom-image" type="file" accept="image/*" required>
+        </label>
+      </div>
+      <div class="row">
+        <button type="submit" class="primary">Add to this bell</button>
+        <button type="button" id="custom-cancel">Cancel</button>
+      </div>
+      <p class="muted small">
+        This item is only saved in your browser (and in any share links you make).
+        To suggest it for everyone, email the picture and its weight to
+        <a id="custom-email"></a>. Pictures with the background removed work best.
+      </p>
+    </form>
+    <input id="picker-filter" type="search" placeholder="Filter items…" aria-label="Filter items">
+    <div id="picker-grid" class="picker-grid"></div>
+  </dialog>
+
+  <footer class="site-footer">
+    Bell data: <a href="https://dove.cccbr.org.uk/">Dove's Guide</a>
+    | Item pictures: <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>
+    | Developed by: <a href="mailto:dander_fabric926@simplelogin.com">Lucas Williams</a>
+  </footer>
+</body>
+</html>
