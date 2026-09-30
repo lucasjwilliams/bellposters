@@ -1,7 +1,7 @@
 'use strict';
 
 // Shown in the footer; bump it with each release to check a device has the latest
-const VERSION = '0.3';
+const VERSION = '0.4';
 
 const LB_TO_KG = 0.45359237;
 const IN_TO_CM = 2.54;
@@ -444,10 +444,30 @@ function itemThumb(item, cls = 'thumb') {
 
 // The poster uses a background image rather than <img> because html2canvas
 // ignores object-fit and would stretch the picture.
+// Until a full-size picture has loaded, the poster shows its thumbnail (usually
+// already loaded by the picker) and swaps it in once ready, so it's never blank.
+const fullLoaded = new Set();
+const fullLoading = new Set();
+
+function loadFullImage(src) {
+  if (fullLoading.has(src)) return;
+  fullLoading.add(src);
+  const img = new Image();
+  img.onload = () => {
+    fullLoaded.add(src);
+    for (const el of document.querySelectorAll('.p-img[data-full]')) {
+      if (el.dataset.full === src) el.style.backgroundImage = `url('${src}')`;
+    }
+  };
+  img.src = src;
+}
+
 function posterImage(item) {
-  return item.image
-    ? `<div class="p-img" style="background-image:url('${escapeHtml(item.image)}')" role="img" aria-label="${escapeHtml(item.name)}"></div>`
-    : '';
+  if (!item.image) return '';
+  const ready = item.custom || fullLoaded.has(item.image);
+  if (!ready) loadFullImage(item.image);
+  const src = ready ? item.image : thumbSrc(item);
+  return `<div class="p-img" data-full="${escapeHtml(item.image)}" style="background-image:url('${escapeHtml(src)}')" role="img" aria-label="${escapeHtml(item.name)}"></div>`;
 }
 
 // ---------- Item picker ----------
