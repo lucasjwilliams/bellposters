@@ -1,7 +1,7 @@
 'use strict';
 
 // Shown in the footer; bump it with each release to check a device has the latest
-const VERSION = '0.4';
+const VERSION = '0.6';
 
 const LB_TO_KG = 0.45359237;
 const IN_TO_CM = 2.54;
@@ -879,6 +879,32 @@ function withTimeout(promise, ms) {
   ]);
 }
 
+// html2canvas draws CSS background pictures at 1x and then enlarges the whole
+// canvas, so they come out blocky with stray lines at their edges. For the
+// export, each poster picture becomes an <img>, which it draws at full
+// resolution, sized by hand since it also ignores object-fit.
+async function exportPictures(page) {
+  return Promise.all([...page.querySelectorAll('.p-img')].map(async (el) => {
+    const img = new Image();
+    img.src = el.dataset.full;
+    await img.decode();
+    const s = Math.min(el.clientWidth / img.naturalWidth, el.clientHeight / img.naturalHeight);
+    return { src: img.src, w: img.naturalWidth * s, h: img.naturalHeight * s };
+  }));
+}
+
+function swapInPictures(doc, pageIndex, pictures) {
+  const els = doc.querySelectorAll('#posters .poster')[pageIndex].querySelectorAll('.p-img');
+  els.forEach((el, i) => {
+    const { src, w, h } = pictures[i];
+    Object.assign(el.style, { backgroundImage: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' });
+    const img = doc.createElement('img');
+    img.src = src;
+    Object.assign(img.style, { width: `${w}px`, height: `${h}px`, maxWidth: 'none', flex: 'none' });
+    el.append(img);
+  });
+}
+
 async function downloadImage() {
   const btn = $('download');
   btn.disabled = true;
@@ -891,13 +917,17 @@ async function downloadImage() {
       // iOS Safari runs out of canvas memory on big images, so phones get ~4 MP
       const maxPixels = IS_TOUCH ? 4e6 : 12e6;
       const scale = Math.min(3, Math.sqrt(maxPixels / (page.offsetWidth * page.offsetHeight)));
+      const pictures = await exportPictures(page);
       const canvas = await withTimeout(html2canvas(page, {
         scale,
         backgroundColor: '#ffffff',
         // Only clone this page; otherwise html2canvas waits on every lazy picker thumbnail
         ignoreElements: (el) => !el.closest('head') && !(el.contains(page) || page.contains(el)),
         imageTimeout: 8000,
-        onclone: (doc) => { doc.getElementById('posters').style.transform = 'none'; },
+        onclone: (doc) => {
+          doc.getElementById('posters').style.transform = 'none';
+          swapInPictures(doc, i, pictures);
+        },
       }), 30000);
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('the image was too big for this browser');
@@ -963,6 +993,17 @@ function initControls() {
   $('head-all').addEventListener('change', (e) => { state.headAll = e.target.checked; renderPoster(); });
   $('add-bell').addEventListener('click', addBell);
   $('reshuffle').addEventListener('click', () => { suggestAll(true); renderBellList(); renderPoster(); });
+  // Clicking the dimmed area outside the picker closes it. Both the press and
+  // the release must be outside, so dragging out of the filter box doesn't.
+  const outsidePicker = (e) => {
+    const r = $('picker').getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+  let pressedOutside = false;
+  $('picker').addEventListener('pointerdown', (e) => { pressedOutside = outsidePicker(e); });
+  $('picker').addEventListener('click', (e) => {
+    if (pressedOutside && outsidePicker(e)) $('picker').close();
+  });
   $('picker-filter').addEventListener('input', renderPicker);
   $('custom-form').addEventListener('submit', addCustomItem);
   $('custom-cancel').addEventListener('click', () => {
