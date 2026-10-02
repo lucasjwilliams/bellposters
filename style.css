@@ -477,4 +477,18 @@ button.link.inline { padding: 0; text-decoration: underline; }
   html.safari-print .poster.landscape { height: 154mm; }
 }
 
-.version { margin-left: 8px; opacity: 0.7; white-space: nowrap; }
+.version { margin-left: 8px; opacity: 0.7; white-space: nowrap; color: inherit; font-size: inherit; }
+
+/* ---------- Changelog ---------- */
+
+.changelog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 16px;
+  border: none; border-radius: 12px;
+}
+.changelog::backdrop { background: rgba(0, 0, 0, 0.4); }
+.changelog-list section { margin-top: 14px; }
+.changelog-list h3 { margin: 0; font-size: 0.95rem; }
+.changelog-list h3 time { margin-left: 6px; font-weight: normal; color: var(--muted); }
+.changelog-list ul { margin: 4px 0 0; padding-left: 20px; font-size: 0.9rem; }

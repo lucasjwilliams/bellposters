@@ -1,7 +1,49 @@
 'use strict';
 
-// Shown in the footer; bump it with each release to check a device has the latest
-const VERSION = '0.7';
+// Newest first. The top entry's version is shown in the footer (so a device can
+// be checked for the latest), and clicking it lists these.
+const CHANGELOG = [
+  {
+    version: '0.8', date: '2026-10-02', changes: [
+      'Towers with chime bells, old bells or planned new bells (e.g. Manchester Town Hall) now name their bells properly and start with just the ringing bells ticked',
+      'This list of changes',
+    ],
+  },
+  {
+    version: '0.7', date: '2026-10-01', changes: [
+      'Anonymous counts of which towers are picked and how posters are exported (no cookies)',
+    ],
+  },
+  {
+    version: '0.6', date: '2026-09-30', changes: [
+      'Sharper item pictures in downloaded images, without stray lines around them',
+      'Clicking outside the item picker closes it',
+    ],
+  },
+  {
+    version: '0.4', date: '2026-09-30', changes: [
+      'New bank vault door picture',
+      'The poster preview shows a small picture straight away while the full-size one loads',
+    ],
+  },
+  {
+    version: '0.3', date: '2026-09-30', changes: [
+      'Bigger posters when printing from an iPhone or iPad',
+      'New contact email',
+    ],
+  },
+  {
+    version: '0.2', date: '2026-09-30', changes: [
+      'Printing from an iPhone or iPad fits the poster on one page',
+    ],
+  },
+  {
+    version: '0.1', date: '2026-09-30', changes: [
+      'First version: find a tower, match each bell to something that weighs about the same, style the poster, then print, download or share it',
+    ],
+  },
+];
+const VERSION = CHANGELOG[0].version;
 
 const LB_TO_KG = 0.45359237;
 const IN_TO_CM = 2.54;
@@ -115,22 +157,47 @@ function ordinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-function defaultBellName(role, ringSize) {
-  const n = parseInt(role, 10);
-  if (String(n) === role) {
-    if (n === 1) return '1 (Treble)';
-    if (n === ringSize) return `${n} (Tenor)`;
-    return role;
-  }
-  // Extra semitone bells: "6b" is a flat sixth, "2#" a sharp second
-  const m = role.match(/^(\d+)(b|#)$/);
-  if (m) return `${m[2] === 'b' ? 'Flat' : 'Sharp'} ${ordinal(+m[1])}`;
-  return role;
+// Dove's bell codes. Ringing bells are numbered, "6b" / "2#" being a flat sixth
+// and sharp second, and may carry their number in a chime or older ring too:
+// "2#c7" is the sharp second, also chime bell 7. Bells that aren't rung have a
+// prefix: "c11" chime bell, "o3" a bell of an older ring, "new1" a planned bell.
+function parseRole(role) {
+  let m = role.match(/^(\d+)([b#]?)(?:[co]\d+)?$/);
+  if (m) return { kind: 'ring', n: +m[1], mod: m[2] };
+  m = role.match(/^(c|o|new)(\d+)([b#]?)$/);
+  if (m) return { kind: m[1], n: +m[2], mod: m[3] };
+  return { kind: 'other', n: 0, mod: '' };
 }
 
-// Bells 1..n start ticked; extras such as a flat 6th start unticked
+const ROLE_PREFIX = { c: 'Chime', o: 'Old', new: 'New' };
+
+function defaultBellName(role, ringSize) {
+  const { kind, n, mod } = parseRole(role);
+  const flatSharp = mod === 'b' ? 'flat ' : mod === '#' ? 'sharp ' : '';
+  if (kind === 'ring') {
+    if (mod) return `${mod === 'b' ? 'Flat' : 'Sharp'} ${ordinal(n)}`;
+    if (n === 1) return '1 (Treble)';
+    if (n === ringSize) return `${n} (Tenor)`;
+    return String(n);
+  }
+  if (kind === 'other') return role;
+  if (n === 0) return `${ROLE_PREFIX[kind]} extra treble`;
+  return `${ROLE_PREFIX[kind]} ${flatSharp}${kind === 'c' ? n : ordinal(n)}`;
+}
+
+// Bells 1..n start ticked; extras such as a flat 6th or chime bells start unticked
 function isMainBell(role, ringSize) {
-  return /^\d+$/.test(role) && +role >= 1 && +role <= ringSize;
+  const { kind, n, mod } = parseRole(role);
+  return kind === 'ring' && !mod && n >= 1 && n <= ringSize;
+}
+
+// Ringing bells keep Dove's order; the rest (listed by code, so "c10" before
+// "c2") follow, lightest first. Bells are [role, lb, ...].
+function sortRingBells(bells) {
+  const rung = bells.filter((b) => parseRole(b[0]).kind === 'ring');
+  const rest = bells.filter((b) => parseRole(b[0]).kind !== 'ring');
+  rest.sort((a, b) => (a[1] ?? Infinity) - (b[1] ?? Infinity));
+  return [...rung, ...rest];
 }
 
 function escapeHtml(s) {
@@ -1004,17 +1071,9 @@ function initControls() {
   $('head-all').addEventListener('change', (e) => { state.headAll = e.target.checked; renderPoster(); });
   $('add-bell').addEventListener('click', addBell);
   $('reshuffle').addEventListener('click', () => { suggestAll(true); renderBellList(); renderPoster(); });
-  // Clicking the dimmed area outside the picker closes it. Both the press and
-  // the release must be outside, so dragging out of the filter box doesn't.
-  const outsidePicker = (e) => {
-    const r = $('picker').getBoundingClientRect();
-    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
-  };
-  let pressedOutside = false;
-  $('picker').addEventListener('pointerdown', (e) => { pressedOutside = outsidePicker(e); });
-  $('picker').addEventListener('click', (e) => {
-    if (pressedOutside && outsidePicker(e)) $('picker').close();
-  });
+  closeOnBackdrop($('picker'));
+  closeOnBackdrop($('changelog'));
+  $('version').addEventListener('click', showChangelog);
   $('picker-filter').addEventListener('input', renderPicker);
   $('custom-form').addEventListener('submit', addCustomItem);
   $('custom-cancel').addEventListener('click', () => {
@@ -1047,9 +1106,33 @@ function initControls() {
   });
 }
 
+// Clicking the dimmed area outside a dialog closes it. Both the press and the
+// release must be outside, so dragging out of a text box doesn't.
+function closeOnBackdrop(dialog) {
+  const outside = (e) => {
+    const r = dialog.getBoundingClientRect();
+    return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  };
+  let pressedOutside = false;
+  dialog.addEventListener('pointerdown', (e) => { pressedOutside = outside(e); });
+  dialog.addEventListener('click', (e) => {
+    if (pressedOutside && outside(e)) dialog.close();
+  });
+}
+
+function showChangelog() {
+  const fmt = (d) => new Date(`${d}T12:00`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  $('changelog-list').innerHTML = CHANGELOG.map((v) => `
+    <section>
+      <h3>v${v.version}<time datetime="${v.date}">${fmt(v.date)}</time></h3>
+      <ul>${v.changes.map((c) => `<li>${escapeHtml(c)}</li>`).join('')}</ul>
+    </section>`).join('');
+  $('changelog').showModal();
+}
+
 async function init() {
   // document.lastModified is when the page was last deployed
-  $('version').textContent = `v${VERSION} · ${new Date(document.lastModified).getFullYear()}`;
+  $('version').textContent = `v${VERSION} ${new Date(document.lastModified).getFullYear()}`;
   initControls();
   fitPreview();
   if (!window.RINGS || !window.ITEMS) {
@@ -1057,6 +1140,9 @@ async function init() {
     return;
   }
   state.rings = window.RINGS;
+  for (const r of state.rings) {
+    if (r[7].some((b) => parseRole(b[0]).kind !== 'ring')) r[7] = sortRingBells(r[7]);
+  }
   state.items = window.ITEMS;
   loadCustomItems();
   $('tower-status').innerHTML = `${state.rings.length.toLocaleString()} rings to choose from or <button type="button" class="link inline" id="go-custom">go custom</button>.`;

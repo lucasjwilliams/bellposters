@@ -166,11 +166,19 @@
     <div id="picker-grid" class="picker-grid"></div>
   </dialog>
 
+  <dialog id="changelog" class="changelog">
+    <form method="dialog" class="picker-head">
+      <h2>What's changed</h2>
+      <button type="submit" class="close" aria-label="Close">✕</button>
+    </form>
+    <div id="changelog-list" class="changelog-list"></div>
+  </dialog>
+
   <footer class="site-footer">
     Bell data: <a href="https://dove.cccbr.org.uk/">Dove's Guide</a>
     | Item pictures: <a href="https://commons.wikimedia.org/">Wikimedia Commons</a>
     | Developed by: <a href="mailto:contact@lucasw.uk">Lucas Williams</a>
-    <span id="version" class="version"></span>
+    <button type="button" id="version" class="version link" title="What's changed"></button>
   </footer>
 </body>
 </html>
