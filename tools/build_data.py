@@ -51,7 +51,7 @@ def main():
             ])
 
     def role_key(b):
-        # "1", "2", "6b", "2#" ... sort by number, extras just after their number
+        # sort by number, extras just after their number
         m = re.match(r"(\d+)(.*)", b[0])
         return (int(m.group(1)), m.group(2)) if m else (9999, b[0])
 
@@ -74,7 +74,6 @@ def main():
             ])
 
     towers.sort(key=lambda t: (t[1].lower(), t[2].lower()))
-    # A script rather than JSON so the site also works opened straight from disk
     out = os.path.join(ROOT, "data", "rings.js")
     with open(out, "w", encoding="utf-8") as f:
         f.write("window.RINGS=")

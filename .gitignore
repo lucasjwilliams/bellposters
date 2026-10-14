@@ -1,4 +1,3 @@
-# Raw Dove downloads (tools/build_data.py turns these into data/rings.js)
 *.csv
 
 __pycache__/

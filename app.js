@@ -1,7 +1,5 @@
 'use strict';
 
-// Newest first. The top entry's version is shown in the footer (so a device can
-// be checked for the latest), and clicking it lists these.
 const CHANGELOG = [
   {
     version: '0.8', date: '2026-10-02', changes: [
@@ -63,7 +61,6 @@ const THEMES = [
   { name: 'Slate', main: '#333a42', light: '#e6e8eb' },
 ];
 
-// Optional poster columns (the bell name is always shown), with their share of the width
 const COLUMNS = [
   { key: 'note', head: 'Note', width: 0.8, cell: (b) => escapeHtml(b.note || '—') },
   { key: 'weight', head: 'Weight', width: 1.7, cell: (b) => fmtWeight(b.kg) },
@@ -76,16 +73,12 @@ const COLUMNS = [
     },
   },
 ];
-const DEFAULT_COLS = '0101'; // weight and item on; note and diameter off
+const DEFAULT_COLS = '0101'; 
 
-// Items people add themselves are kept in their browser (and travel in share links)
 const CUSTOM_KEY = 'bellposters.customItems';
 const CUSTOM_IMG_SIZE = 240;
 const SUBMIT_EMAIL = 'contact@lucasw.uk';
 
-// Anonymous usage counts (towers picked, exports) go to GoatCounter, which uses
-// no cookies. Its script loads async, so an event sent before then waits for it.
-// It ignores localhost, so testing doesn't count.
 function track(path, title = '') {
   const send = () => window.goatcounter.count({ path, title, event: true });
   if (window.goatcounter?.count) send();
@@ -104,8 +97,8 @@ const state = {
   diamUnits: 'cm',
   orientation: 'portrait',
   pages: 1,
-  show: { note: false, weight: true, diam: false, item: true },   // poster columns
-  titleAll: false,    // with several pages: repeat the title / table headings on each
+  show: { note: false, weight: true, diam: false, item: true },
+  titleAll: false,
   headAll: false,
   theme: THEMES[0],
   pickingBell: null,
@@ -115,14 +108,10 @@ const $ = (id) => document.getElementById(id);
 
 const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
 
-// Safari, and every browser on iPhone/iPad, ignores "@page { margin: 0 }" when
-// printing, so style.css makes the printed poster shorter there
 const IS_WEBKIT_PRINT = /iP(hone|ad|od)/.test(navigator.userAgent)
   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) // iPad in desktop mode
   || (/Safari/.test(navigator.userAgent) && !/Chrome|Chromium|CriOS|Edg|Firefox|FxiOS|Android/.test(navigator.userAgent));
 if (IS_WEBKIT_PRINT) document.documentElement.classList.add('safari-print');
-
-// ---------- Formatting ----------
 
 function fmtKg(kg) {
   if (kg == null) return '—';
@@ -157,10 +146,6 @@ function ordinal(n) {
   return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
-// Dove's bell codes. Ringing bells are numbered, "6b" / "2#" being a flat sixth
-// and sharp second, and may carry their number in a chime or older ring too:
-// "2#c7" is the sharp second, also chime bell 7. Bells that aren't rung have a
-// prefix: "c11" chime bell, "o3" a bell of an older ring, "new1" a planned bell.
 function parseRole(role) {
   let m = role.match(/^(\d+)([b#]?)(?:[co]\d+)?$/);
   if (m) return { kind: 'ring', n: +m[1], mod: m[2] };
@@ -185,14 +170,12 @@ function defaultBellName(role, ringSize) {
   return `${ROLE_PREFIX[kind]} ${flatSharp}${kind === 'c' ? n : ordinal(n)}`;
 }
 
-// Bells 1..n start ticked; extras such as a flat 6th or chime bells start unticked
+// Bells 1..n  ticked, extras (e.g #2)
 function isMainBell(role, ringSize) {
   const { kind, n, mod } = parseRole(role);
   return kind === 'ring' && !mod && n >= 1 && n <= ringSize;
 }
 
-// Ringing bells keep Dove's order; the rest (listed by code, so "c10" before
-// "c2") follow, lightest first. Bells are [role, lb, ...].
 function sortRingBells(bells) {
   const rung = bells.filter((b) => parseRole(b[0]).kind === 'ring');
   const rest = bells.filter((b) => parseRole(b[0]).kind !== 'ring');
@@ -204,8 +187,6 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
 
-// ---------- Item matching ----------
-
 function itemById(id) {
   return state.items.find((i) => i.id === id) || state.customItems.find((i) => i.id === id);
 }
@@ -216,14 +197,9 @@ function rankedItems(kg) {
     .sort((a, b) => a.score - b.score);
 }
 
-// Give each ticked bell a close item, never two of the same kind (two bears,
-// two cars) and spreading the categories so a poster isn't all animals.
-// shuffle: "Re-suggest" - add randomness and avoid the items already shown.
-// only: pick for just this bell and leave the others alone.
 function suggestAll(shuffle = false, only = null) {
   const usedKinds = new Set();
   const categoryCount = {};
-  // Bells showing someone's own item keep it
   const keep = (b) => itemById(b.itemId)?.custom;
   const included = only ? [only] : state.bells.filter((b) => b.included && b.kg && !keep(b));
   if (only) {
@@ -236,10 +212,7 @@ function suggestAll(shuffle = false, only = null) {
   }
   const current = new Set(shuffle ? included.map((b) => b.itemId) : []);
   const jitter = new Map(state.items.map((i) => [i.id, shuffle ? Math.random() * SHUFFLE_JITTER : 0]));
-  // Heaviest first: big items are scarcer, so they get first pick
   for (const bell of [...included].sort((a, b) => b.kg - a.kg)) {
-    // Re-suggest never gives back an item that was already on the poster,
-    // unless nothing else is left for this weight
     const all = rankedItems(bell.kg);
     const ranked = all.filter((r) => !current.has(r.item.id)).length ? all.filter((r) => !current.has(r.item.id)) : all;
     const fresh = ranked.filter((r) => !usedKinds.has(r.item.kind));
@@ -257,7 +230,6 @@ function suggestAll(shuffle = false, only = null) {
       categoryCount[pick.item.category] = (categoryCount[pick.item.category] || 0) + 1;
     }
   }
-  // Re-deal the chosen items so heavier bells always get heavier items
   if (!only) {
     const dealt = included.filter((b) => b.itemId);
     const itemsByKg = dealt.map((b) => itemById(b.itemId)).sort((a, b) => b.kg - a.kg);
@@ -265,14 +237,10 @@ function suggestAll(shuffle = false, only = null) {
   }
 }
 
-// ---------- Tower search ----------
-
 function towerLabel(r) {
   return `${r[1]}, ${r[2]}`;
 }
 
-// Lower is better: exact place name, then place starting with the query, then a
-// word in the place starting with it, then any other match
 function placeRank(place, q) {
   if (place === q) return 0;
   if (place.startsWith(q)) return 1;
@@ -282,19 +250,16 @@ function placeRank(place, q) {
 
 function searchTowers(q) {
   const query = q.toLowerCase().trim();
-  // Commas are ignored, so a tower's own label ("Tring, S Peter & S Paul") still finds it
   const terms = query.split(/[\s,]+/).filter(Boolean);
   if (!terms.length) return [];
   const matches = [];
   for (const r of state.rings) {
     const hay = `${r[1]} ${r[2]} ${r[3]}`.toLowerCase();
     if (terms.every((t) => hay.includes(t))) {
-      // Rank on the first word too, so "tring peter" still puts Tring first
       const place = r[1].toLowerCase();
       matches.push({ r, rank: Math.min(placeRank(place, query), placeRank(place, terms[0]) + 0.5) });
     }
   }
-  // Array sort is stable, so ties keep the alphabetical order of the data
   return matches.sort((a, b) => a.rank - b.rank).slice(0, 50).map((m) => m.r);
 }
 
@@ -314,8 +279,6 @@ function renderResults(list) {
   });
 }
 
-// "Go custom": a made-up tower with one example bell to edit and add to
-// (the ring data uses lb and inches: 220.462 lb = 100 kg, 100 / 2.54 in = 100 cm)
 const CUSTOM_RING = [0, 'Our Tower', '', '', '', 1, null, [['1', 220.462, 0, 'A', 100 / 2.54]]];
 
 function defaultTitle(r) {
@@ -353,9 +316,6 @@ function selectRing(r, fromShare = false) {
   renderPoster();
 }
 
-// ---------- Bell list (controls) ----------
-
-// Keep "The 8 Bells of …" in step with how many bells are ticked
 function updateTitleCount() {
   const n = state.bells.filter((b) => b.included).length;
   state.title = state.title.replace(/^The (\d+ )?Bells/, n > 1 ? `The ${n} Bells` : 'The Bells');
@@ -366,7 +326,6 @@ function syncColumnChecks() {
   COLUMNS.forEach((c) => { $(`col-${c.key}`).checked = state.show[c.key]; });
 }
 
-// Diameters are kept in inches (as Dove has them) and edited in the chosen unit
 function diamValue(inches) {
   if (inches == null) return '';
   return state.diamUnits === 'in' ? +inches.toFixed(1) : (inches * IN_TO_CM).toFixed(1);
@@ -452,8 +411,6 @@ function renderBellList() {
   });
 }
 
-// Drag a bell by its handle: the row swaps places with its neighbours as the
-// pointer passes their middle, and the new order is saved on release
 function startDrag(e, row) {
   if (e.button !== 0) return;
   e.preventDefault();
@@ -461,8 +418,6 @@ function startDrag(e, row) {
   row.classList.add('dragging');
   list.classList.add('is-dragging');
   const mid = (el) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2; };
-  // Neighbours are moved around the dragged row rather than moving the row
-  // itself, which would cancel the drag
   const move = (ev) => {
     const next = row.nextElementSibling;
     const prev = row.previousElementSibling;
@@ -506,9 +461,6 @@ function startCustom() {
   selectRing(CUSTOM_RING);
 }
 
-// Lists show a small copy from images/thumbs/ (made by tools/make_thumbs.py);
-// the poster keeps the full-size picture for printing and downloads.
-// Someone's own items are already small data: URLs.
 function thumbSrc(item) {
   return item.custom ? item.image : item.image.replace(/^images\/(.*)\.\w+$/, 'images/thumbs/$1.webp');
 }
@@ -519,10 +471,6 @@ function itemThumb(item, cls = 'thumb') {
     : `<span class="${cls}"></span>`;
 }
 
-// The poster uses a background image rather than <img> because html2canvas
-// ignores object-fit and would stretch the picture.
-// Until a full-size picture has loaded, the poster shows its thumbnail (usually
-// already loaded by the picker) and swaps it in once ready, so it's never blank.
 const fullLoaded = new Set();
 const fullLoading = new Set();
 
@@ -547,8 +495,6 @@ function posterImage(item) {
   return `<div class="p-img" data-full="${escapeHtml(item.image)}" style="background-image:url('${escapeHtml(src)}')" role="img" aria-label="${escapeHtml(item.name)}"></div>`;
 }
 
-// ---------- Item picker ----------
-
 function openPicker(bell) {
   state.pickingBell = bell;
   $('picker-title').textContent = `${bell.name} · ${fmtKg(bell.kg)}`;
@@ -563,14 +509,11 @@ function openPicker(bell) {
 function renderPicker() {
   const bell = state.pickingBell;
   const q = $('picker-filter').value.trim().toLowerCase();
-  // Which bell (by number) each item is already on, e.g. { lion: '6' }
   const usedOn = {};
   state.bells.forEach((b, i) => {
-    // "8 (Tenor)" shows as 8; an unnamed bell by its position
     if (b !== bell && b.included && b.itemId) usedOn[b.itemId] = b.name.replace(/\s*\(.*\)\s*$/, '') || String(i + 1);
   });
   const matches = (item) => !q || item.name.toLowerCase().includes(q);
-  // Your own items first (they have no weight), then everything heaviest to lightest
   const list = [
     ...state.customItems.filter(matches).map((item) => ({ item })),
     ...rankedItems(bell.kg).filter((r) => matches(r.item)).sort((a, b) => b.item.kg - a.item.kg),
@@ -605,8 +548,6 @@ function renderPicker() {
   });
 }
 
-// ---------- Custom items ----------
-
 function loadCustomItems() {
   try {
     state.customItems = JSON.parse(localStorage.getItem(CUSTOM_KEY)) || [];
@@ -617,10 +558,8 @@ function loadCustomItems() {
 
 function saveCustomItems() {
   try {
-    // Items that arrived in someone else's share link aren't kept
     localStorage.setItem(CUSTOM_KEY, JSON.stringify(state.customItems.filter((i) => !i.fromLink)));
   } catch {
-    // Storage full or blocked: the item still works until the page is closed
   }
 }
 
@@ -635,7 +574,6 @@ function readImageFile(file) {
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(img.src);
-      // WebP keeps transparency and is small; browsers without it give PNG back
       resolve(canvas.toDataURL('image/webp', 0.8));
     };
     img.onerror = () => reject(new Error('That file could not be read as an image.'));
@@ -661,7 +599,6 @@ async function addCustomItem(e) {
   }
 }
 
-// ---------- Share links ----------
 // The poster is stored in the URL hash as #p=<base64url(deflate(bytes))>, where
 // bytes = 4-byte JSON length + JSON + any custom pictures as raw WebP.
 // Only settings that differ from a freshly picked tower are stored:
@@ -672,7 +609,7 @@ async function addCustomItem(e) {
 //   o n    'l' for landscape, number of pages
 //   cl     shown columns in COLUMNS order, e.g. "0101"
 //   ta ha  1 = repeat title / headings on every page
-//   b      { index: [included, name, kg, note] } edits to the tower's own bells
+//   b      { index: [included, name, kg, note] } edits to the towers own bells
 //   B      [[doveRole or '', included, name, kg, note, diameter]] the whole list,
 //          once bells have been reordered, added or removed
 //   x      [[id, name, byteLength]] custom pictures that follow the JSON
@@ -862,8 +799,6 @@ async function share() {
   setTimeout(() => { btn.textContent = 'Copy share link'; }, 2500);
 }
 
-// ---------- Poster ----------
-
 // Split the bells into `pages` groups as evenly as possible, keeping bell order
 function splitBells(bells, pages) {
   const n = Math.max(1, Math.min(pages, bells.length));
@@ -1034,8 +969,6 @@ async function downloadImage() {
     btn.textContent = 'Download as image';
   }
 }
-
-// ---------- Wiring ----------
 
 function initControls() {
   const search = $('tower-search');

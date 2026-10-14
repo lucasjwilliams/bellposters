@@ -2,11 +2,10 @@
 
 Make a printable poster that compares each bell in a tower to something that weighs about the same.
 
-**Live site:** https://lucasjwilliams.github.io/bellposters/
+**Live site:** https://weights.lucasw.uk
 
 Pick any ring from [Dove's Guide](https://dove.cccbr.org.uk/), untick or rename bells, swap the suggested items, choose a colour and layout, then print it, save it as a PDF or download it as an image. You can also start from scratch with a custom tower.
 
-`?ring=<Dove ring id>` opens a tower directly (e.g. `?ring=825` for Edgbaston). **Copy share link** saves the whole poster, including any pictures people have added themselves, in the link.
 
 ## How it works
 
@@ -15,7 +14,7 @@ It's a static site with no build step: `index.html`, `style.css` and `app.js`, p
 - `data/rings.js` is every full-circle ring in Dove's Guide, with each bell's weight, note and diameter.
 - `data/items.js` is the list of things to compare against.
 
-Items are suggested by weight, heaviest bells first, while trying not to repeat the same kind of thing (two bears, two cars) or fill a poster with one category. The chosen items are then re-ordered so heavier bells always get heavier items.
+Items are suggested by weight, heaviest bells first, while trying not to repeat the same kind of thing (two animals, two verhicles) or fill a poster with one category. The user can than manually adjust the assigned item.
 
 ## Adding items
 

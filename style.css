@@ -39,7 +39,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 6px;
   background: #fff;
-  color: var(--text); /* iOS makes button text blue otherwise */
+  color: var(--text);
   cursor: pointer;
 }
 button:hover:not(:disabled) { border-color: var(--accent); }
@@ -50,8 +50,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .muted { color: var(--muted); }
 .small { font-size: 0.85rem; }
 
-/* ---------- Page layout ---------- */
-
 .site-header { padding: 20px 24px 8px; }
 .site-header h1 { margin: 0 0 4px; font-size: 1.6rem; }
 .site-header p { margin: 0; color: var(--muted); }
@@ -60,7 +58,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 
 .layout {
   display: grid;
-  /* minmax(0, …) stops the full-size poster from stretching the preview column */
   grid-template-columns: clamp(340px, 40vw, 640px) minmax(0, 1fr);
   gap: 24px;
   padding: 16px 24px;
@@ -88,8 +85,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .row { display: flex; gap: 10px; flex-wrap: wrap; }
 .row .field { flex: 1; min-width: 120px; }
 
-/* ---------- Step 1: tower search ---------- */
-
 .search { position: relative; }
 .results {
   position: absolute; z-index: 10; left: 0; right: 0; top: 100%;
@@ -102,10 +97,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .results li:hover { background: var(--bg); }
 .results li .muted { display: block; font-size: 0.8rem; }
 .results li.none { cursor: default; }
-
-/* ---------- Step 2: bell table ---------- */
-/* One banded row per bell. The layout follows the width of the panel (a
-   container query), not the screen; narrow panels switch to cards below. */
 
 .bells { container-type: inline-size; }
 .bell-list { display: flex; flex-direction: column; }
@@ -166,7 +157,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .bell-row input[type=number]::-webkit-inner-spin-button,
 .bell-row input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
 
-/* The item cell is a button styled as a dropdown */
 .item-btn {
   position: relative;
   display: flex; align-items: center; gap: 6px;
@@ -200,7 +190,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .bell-row:hover .drag { opacity: 1; }
 .bell-row .drag:focus-visible { outline: 2px solid var(--accent); border-radius: 4px; }
 
-/* While dragging, the row lifts off the table and the others fade back */
 .bell-list.is-dragging .bell-row:not(.dragging) { opacity: 0.6; }
 .bell-list .bell-row.dragging {
   position: relative; z-index: 5;
@@ -217,7 +206,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
   .bell-row { transition: opacity 0.15s; }
 }
 
-/* Column headings share the rows' grid */
 .bell-row.bell-head {
   min-height: 0;
   padding-top: 0; padding-bottom: 6px;
@@ -236,8 +224,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 
 .list-actions { display: flex; flex-wrap: wrap; gap: 4px 20px; }
 
-/* Narrow panels: one card per bell. Name on top, then labelled note / kg / cm,
-   then the item across the width. */
 @container (max-width: 469px) {
   .bell-head { display: none; }
   .bell-list { gap: 8px; }
@@ -264,8 +250,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
   .bell-row .drag { opacity: 0.8; }
 }
 
-/* ---------- Step 3: style ---------- */
-
 #step-style .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
 #step-style .row.titles { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 #step-style .row .field { min-width: 0; }
@@ -283,12 +267,8 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .swatch { width: 30px; height: 30px; padding: 0; border: 3px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1px var(--border); }
 .swatch.on { box-shadow: 0 0 0 2px var(--text); }
 
-/* ---------- Step 4: export ---------- */
-
 #share-box { margin-top: 10px; }
 #share-box input { font-size: 0.8rem; }
-
-/* ---------- Item picker ---------- */
 
 .picker {
   width: min(720px, calc(100vw - 32px));
@@ -304,7 +284,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 #picker-filter { margin: 10px 0; }
 
 .picker-grid {
-  /* flex-basis auto, not 0: iOS Safari collapses a 0-basis item to nothing */
   flex: 1 1 auto;
   min-height: 120px;
   display: grid;
@@ -338,8 +317,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .custom-form input[type=file] { margin-top: 3px; font-size: 0.85rem; }
 .custom-form a { color: var(--accent); }
 
-/* ---------- Preview ---------- */
-
 .preview { position: sticky; top: 16px; }
 .preview-head { display: none; align-items: center; justify-content: space-between; margin-bottom: 10px; }
 .preview-head h2 { margin: 0; font-size: 1.05rem; }
@@ -364,8 +341,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 
 .poster-frame { width: 100%; margin: 0 auto; }
 .posters { display: flex; flex-direction: column; gap: 32px; width: max-content; transform-origin: top left; }
-
-/* ---------- Poster (A4 at 96 dpi) ---------- */
 
 .poster {
   --main: #4a7a35;
@@ -414,8 +389,6 @@ button.link.inline { padding: 0; text-decoration: underline; }
 .p-img { flex: none; width: 40%; height: 85%; max-height: 110px; background: center / contain no-repeat; }
 .p-credit { margin: 10px 0 0; text-align: right; color: #999; font-size: 11px; }
 
-/* ---------- Smaller screens ---------- */
-
 @media (max-width: 860px) {
   .layout { grid-template-columns: minmax(0, 1fr); padding: 12px 16px; }
   .controls, .preview { min-width: 0; }
@@ -438,17 +411,12 @@ button.link.inline { padding: 0; text-decoration: underline; }
   .pick-name { font-size: 0.82rem; }
 }
 
-/* Phones and tablets: iOS zooms into any field with text under 16px */
 @media (max-width: 860px), (pointer: coarse) {
   input:not([type=checkbox]):not([type=file]), select, textarea { font-size: 16px !important; }
 }
 @media (pointer: coarse) {
   input, select, textarea, button, label { touch-action: manipulation; }
 }
-
-/* ---------- Print: only the poster pages, one per sheet ---------- */
-/* The @page size is set from app.js (#page-size) as it follows the orientation.
-   Pages are a touch under A4 so rounding never spills onto a blank sheet. */
 
 @media print {
   :root, html, body { margin: 0; padding: 0; height: auto; background: #fff; }
@@ -469,17 +437,11 @@ button.link.inline { padding: 0; text-decoration: underline; }
   .poster.landscape { width: 297mm; height: 209mm; }
   .poster:last-child { break-after: auto; page-break-after: auto; }
 
-  /* Safari and all iPhone/iPad browsers ignore "@page { margin: 0 }" and add
-     their own margins and header, so the poster has to be shorter there */
-  /* Measured from iPad print previews: about 181 x 246 mm is usable on A4 (the
-     footer sits below that). These leave ~3 mm spare so it stays on one sheet. */
   html.safari-print .poster { width: 100%; height: 243mm; }
   html.safari-print .poster.landscape { height: 154mm; }
 }
 
 .version { margin-left: 8px; opacity: 0.7; white-space: nowrap; color: inherit; font-size: inherit; }
-
-/* ---------- Changelog ---------- */
 
 .changelog {
   width: min(480px, calc(100vw - 32px));

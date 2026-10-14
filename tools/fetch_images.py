@@ -35,7 +35,6 @@ MAX_SIZE = 480
 
 
 def get(url, **kwargs):
-    """GET politely: Wikimedia answers 429 when requests come too fast."""
     for attempt in range(5):
         r = requests.get(url, headers=UA, timeout=60, **kwargs)
         if r.status_code != 429:
